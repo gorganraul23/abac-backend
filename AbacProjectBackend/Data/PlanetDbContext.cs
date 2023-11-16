@@ -1,7 +1,5 @@
 ﻿using AbacProjectBackend.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
-using System.Reflection.Metadata;
 
 namespace AbacProjectBackend.Data
 {
@@ -12,6 +10,22 @@ namespace AbacProjectBackend.Data
         public DbSet<Planet> Planets { get; set; }
 
         public DbSet<Explorer> Explorers { get; set; }
+
+        public DbSet<PlanetExplorer> PlanetExplorers { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<PlanetExplorer>()
+                .HasKey(bc => new { bc.PlanetId, bc.ExplorerId });
+            modelBuilder.Entity<PlanetExplorer>()
+                .HasOne(bc => bc.Planet)
+                .WithMany(b => b.PlanetExplorers)
+                .HasForeignKey(bc => bc.PlanetId);
+            modelBuilder.Entity<PlanetExplorer>()
+                .HasOne(bc => bc.Explorer)
+                .WithMany(c => c.PlanetExplorers)
+                .HasForeignKey(bc => bc.ExplorerId);
+        }
 
     }
 }

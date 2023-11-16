@@ -3,8 +3,8 @@
     public enum PlanetStatus
     {
         TODO = 0,
-        EnRoute = 1,
+        EN_ROUTE = 1,
         OK = 2,
-        NotOK = 3
+        NOT_OK = 3
     }
 }

@@ -1,5 +1,4 @@
-﻿using Azure;
-
+﻿
 namespace AbacProjectBackend.Models
 {
     public class Planet
@@ -10,11 +9,9 @@ namespace AbacProjectBackend.Models
 
         public PlanetStatus Status { get; set; }
 
-        public Explorer? Captain { get; set; }
-
         public string ImagePath { get; set; }
 
-        //public List<Explorer> Robots { get; } = new();
+        public ICollection<PlanetExplorer> PlanetExplorers { get; set; }
 
     }
 }

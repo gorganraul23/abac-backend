@@ -1,5 +1,4 @@
-﻿using Azure;
-
+﻿
 namespace AbacProjectBackend.Models
 {
     public class Explorer
@@ -9,6 +8,6 @@ namespace AbacProjectBackend.Models
 
         public ExplorerType Type { get; set; }
 
-        //public List<Planet> Planets { get; } = new();
+        public ICollection<PlanetExplorer> PlanetExplorers { get; set; }
     }
 }

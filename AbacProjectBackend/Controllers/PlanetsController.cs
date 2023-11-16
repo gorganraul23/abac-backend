@@ -21,9 +21,12 @@ namespace AbacProjectBackend.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllPlanets()
         {
-            var planets = await _planetDbContext.Planets.Include(p => p.Captain).ToListAsync();
+            var planets = await _planetDbContext.Planets
+                .Include(pe => pe.PlanetExplorers)
+                .ThenInclude(e => e.Explorer)
+                .ToListAsync();
 
-            var planetsDTO = planets.Select(planet => PlanetDTOBuilder.BuildPlanetWithCaptainDTO(planet));
+            var planetsDTO = planets.Select(planet => PlanetDTOBuilder.BuildPlanetWithExplorersNameDTO(planet));
             return Ok(planetsDTO);
         }
 
@@ -31,13 +34,15 @@ namespace AbacProjectBackend.Controllers
         [Route("{id:Guid}")]
         public async Task<IActionResult> GetPlanet(Guid id)
         {
-            var planet = await _planetDbContext.Planets.Include(p => p.Captain).FirstOrDefaultAsync(x => x.Id == id);
+            var planet = await _planetDbContext.Planets
+                .Include(pe => pe.PlanetExplorers)
+                .ThenInclude(e => e.Explorer)
+                .FirstOrDefaultAsync(x => x.Id == id);
 
             if (planet == null)
                 return NotFound();
 
-            return Ok(PlanetDTOBuilder.BuildPlanetDTO(planet));
-            //return Ok(planet);
+            return Ok(PlanetDTOBuilder.BuildPlanetWithExplorersIdDTO(planet));
         }
 
         [HttpPost]
@@ -59,40 +64,72 @@ namespace AbacProjectBackend.Controllers
 
         [HttpPut]
         [Route("{id:Guid}")]
-        public async Task<IActionResult> UpdatePlanet([FromRoute] Guid id, UpdatePlanetDTO planetDTO)
+        public async Task<IActionResult> UpdatePlanet([FromRoute] Guid id, PlanetWithExplorersDTO planetDTO)
         {
             // get planet from db
-            var planet = await _planetDbContext.Planets.FindAsync(id);
+            var planet = await _planetDbContext.Planets
+                .Include(pe => pe.PlanetExplorers)
+                .FirstOrDefaultAsync(p => p.Id == id);
 
             if (planet == null)
                 return NotFound();
 
-            if(planetDTO.Captain != null)
-            {
-                planet.Description = planetDTO.Description;
-                var captain = await _planetDbContext.Explorers.FindAsync(planetDTO.Captain);
-                if (captain == null || captain.Type != ExplorerType.Captain)
-                    return NotFound();
-                planet.Captain = captain;
-            }
+            planet.Description = planetDTO.Description;
 
             switch (planetDTO.Status)
             {
-                case 0:
+                case PlanetStatus.TODO:
                     planet.Status = PlanetStatus.TODO;
                     break;
-
-                case 1:
-                    planet.Status= PlanetStatus.EnRoute;
+                case PlanetStatus.EN_ROUTE:
+                    planet.Status = PlanetStatus.EN_ROUTE;
                     break;
-
-                case 2:
+                case PlanetStatus.OK:
                     planet.Status = PlanetStatus.OK;
                     break;
-
-                default:
-                    planet.Status = PlanetStatus.NotOK;
+                case PlanetStatus.NOT_OK:
+                    planet.Status = PlanetStatus.NOT_OK;
                     break;
+                default:
+                    Console.WriteLine("Unknown status");
+                    break;
+            }
+
+            // if captain add request
+            if (planetDTO.Captain != null && planetDTO.Captain != "")
+            {
+                var existingCaptain = _planetDbContext.PlanetExplorers
+                    .FirstOrDefault(pe => pe.PlanetId == planetDTO.Id && pe.Explorer.Type == ExplorerType.Captain);
+
+                // if there is already a captain - remove it
+                if (existingCaptain != null && existingCaptain.ExplorerId != Guid.Parse(planetDTO.Captain))
+                {
+                    _planetDbContext.PlanetExplorers.Remove(existingCaptain);
+                    await _planetDbContext.SaveChangesAsync();
+
+                    var newCaptain = await _planetDbContext.Explorers
+                        .FirstOrDefaultAsync(e => e.Id == Guid.Parse(planetDTO.Captain) && e.Type == ExplorerType.Captain);
+                    var planetExplorerCaptain = new PlanetExplorer { Explorer = newCaptain, Planet = planet };
+                    planet.PlanetExplorers.Add(planetExplorerCaptain);
+                }
+            
+                
+
+            }
+
+            // add the requested robots
+            if (planetDTO.Robots != null && planetDTO.Robots.Count != 0)
+            {
+                foreach (var robotId in planetDTO.Robots)
+                {
+                    var robot = await _planetDbContext.Explorers
+                        .FirstOrDefaultAsync(e => e.Id == Guid.Parse(robotId) && e.Type == ExplorerType.Robot);
+                    if (robot != null)
+                    {
+                        var planetExplorerRobot = new PlanetExplorer { Explorer = robot, Planet = planet };
+                        planet.PlanetExplorers.Add(planetExplorerRobot);
+                    }
+                }
             }
 
             await _planetDbContext.SaveChangesAsync();
