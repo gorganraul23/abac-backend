@@ -13,8 +13,7 @@ namespace AbacProjectBackend.Builders
                 Name = planet.Name,
                 Description = planet.Description,
                 Status = planet.Status,
-                ImagePath = planet.ImagePath,
-                
+                ImagePath = planet.ImagePath
             };
         }
 

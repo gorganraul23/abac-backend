@@ -75,29 +75,12 @@ namespace AbacProjectBackend.Controllers
                 return NotFound();
 
             planet.Description = planetDTO.Description;
+            planet.Status = planetDTO.Status;
 
-            switch (planetDTO.Status)
-            {
-                case PlanetStatus.TODO:
-                    planet.Status = PlanetStatus.TODO;
-                    break;
-                case PlanetStatus.EN_ROUTE:
-                    planet.Status = PlanetStatus.EN_ROUTE;
-                    break;
-                case PlanetStatus.OK:
-                    planet.Status = PlanetStatus.OK;
-                    break;
-                case PlanetStatus.NOT_OK:
-                    planet.Status = PlanetStatus.NOT_OK;
-                    break;
-                default:
-                    Console.WriteLine("Unknown status");
-                    break;
-            }
-
-            // if captain add request
+            // if captain add request exists
             if (planetDTO.Captain != null && planetDTO.Captain != "")
             {
+                //try to get the captain
                 var existingCaptain = _planetDbContext.PlanetExplorers
                     .FirstOrDefault(pe => pe.PlanetId == planetDTO.Id && pe.Explorer.Type == ExplorerType.Captain);
 
@@ -112,9 +95,16 @@ namespace AbacProjectBackend.Controllers
                     var planetExplorerCaptain = new PlanetExplorer { Explorer = newCaptain, Planet = planet };
                     planet.PlanetExplorers.Add(planetExplorerCaptain);
                 }
-            
-                
 
+                //if planet not explored yet
+                else if(existingCaptain == null)
+                {
+                    var captainToAdd = await _planetDbContext.Explorers
+                        .FirstOrDefaultAsync(e => e.Id == Guid.Parse(planetDTO.Captain) && e.Type == ExplorerType.Captain);
+                    var planetExplorerCaptain = new PlanetExplorer { Explorer = captainToAdd, Planet = planet };
+                    planet.PlanetExplorers.Add(planetExplorerCaptain);
+                }
+         
             }
 
             // add the requested robots
