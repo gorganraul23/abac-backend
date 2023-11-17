@@ -1,4 +1,5 @@
-﻿using AbacProjectBackend.Models;
+﻿using AbacProjectBackend.Configuration;
+using AbacProjectBackend.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace AbacProjectBackend.Data
@@ -25,6 +26,10 @@ namespace AbacProjectBackend.Data
                 .HasOne(bc => bc.Explorer)
                 .WithMany(c => c.PlanetExplorers)
                 .HasForeignKey(bc => bc.ExplorerId);
+
+            // populate database
+            modelBuilder.ApplyConfiguration(new PlanetConfiguration());
+            modelBuilder.ApplyConfiguration(new ExplorerConfiguration());
         }
 
     }
